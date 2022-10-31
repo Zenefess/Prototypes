@@ -66,7 +66,7 @@ inline float2 SquadQuad(uint bits, uint index) {
 }
 
 inline float2 SquadTriangle(uint bits, uint index) {
-	return (0.0f, 0.0f);
+	return float2(0.0f, 0.0f);
 }
 
 inline float2 SquadVFormation(uint bits, uint index) {
