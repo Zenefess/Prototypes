@@ -16,13 +16,13 @@ cbuffer CB_PROJ {
 	-------------------------------------------------
 FLOAT3	Sprite location									// 12 bytes
 FLOAT		Rotation												// 20 bytes
-FLOAT2	Scale														// 24 bytes
-UINT																		// 28 bytes
+FLOAT2	Scale													// 24 bytes
+UINT																// 28 bytes
 	Fixed8p00	Texture X segment
 	Fixed8p00	Texture X total segments
 	Fixed8p00	Texture Y segment
 	Fixed8p00	Texture Y total segments
-UINT																		// 32 bytes
+UINT																// 32 bytes
 	Fixed3p00	Squadron generation method
 	Fixed7p00	Sprite stride
 	Fixed8p14	X/Y distance between sprites
@@ -55,10 +55,10 @@ inline float2 RotateVector(float2 v, float2 dir) {
 void main(point VOut gin[1], uint pID : SV_PrimitiveID, inout TriangleStream<GOut> triStream) {
 	const uint4  uiTV = (gin[0].bits >> uint4(0, 8, 16, 24)) & 0x0FF;
 	const float4 fTV  = float4(int4(uiTV));
-				float4 fTC  = float4(fTV.x, 1.0f - fTV.y, 1.0, 1.0) / fTV.ywyw;
-				float4 fRot = gin[0].r_s.yzyz;
-				float2 fDir; sincos(gin[0].r_s.x, fDir.y, fDir.x);
-				GOut   output;
+			float4 fTC  = float4(fTV.x, 1.0f - fTV.y, 1.0, 1.0) / fTV.ywyw;
+			float4 fRot = gin[0].r_s.yzyz;
+			float2 fDir; sincos(gin[0].r_s.x, fDir.y, fDir.x);
+			GOut   output;
 
 	fTC.zw += fTC.xy;
 	fRot.w = -fRot.w;
