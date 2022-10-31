@@ -48,7 +48,7 @@ inline float2 RotateVector(float2 v, float2 dir) {
 	fResult.x = dot(v, float2(dir.x, -dir.y));
 	fResult.y = dot(v, dir.yx);
 
-	return res;
+	return fResult;
 }
 
 [maxvertexcount(4)]
