@@ -28,8 +28,8 @@ struct PART_IMM {	// 68 bytes
 	float3	t_pos;	// Slide & rotation vectors (maximum transformation)
 	float3	t_rot;	// Slide & rotation vectors (maximum transformation)
 	uint		bits;		// 0==Shape (quad/tri), 1==Billboard
-	uint		tc[2];	// tc[1].r == Paint map | ts[1].g == Emission map (+0.5f)
-};							// tc[1].b == Highlight map | ts[1].a == Occlusion map
+	uint		tc[2];	// tex[0] == Diffuse map | tex[2].x == Paint map    | tex[3].x == Highlight map
+};							// tex[1] == Normal map  | tex[2].y == Emission map | tex[3].y == Occlusion map
 
 struct BONE_DYN {	// 56 bytes
 	float3	pos;
