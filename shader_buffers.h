@@ -44,9 +44,10 @@ al8 struct BONE_DGS {	// 56 bytes
 
 // Elements of dynamic structured buffer for sprite modifiers
 al16 struct SPRITE_DPS {	// 16 bytes
-	float		gev;	// Global emission value
 	VEC4Du8	pmc;	// Paint map colour : values - 1
 	VEC4Du8	dmc;	// Occlusion map colour : values - 1
+	ui16		nms;	// Normal map scale : 6p10
+	ui16		gev;	// Global emission value : 6p10
 	ui16		dme;	// 0-15==Occluision map emission additive : 6p10
 	ui16		dms;	// 16=31==Occlusion map scalar : 6p10
 };
