@@ -1,6 +1,6 @@
 /************************************************************
  * File: gs.instanced.sprites.hlsl      Created: 2022/11/21 *
- *                                    Last mod.: 2022/12/04 *
+ *                                    Last mod.: 2022/12/07 *
  *                                                          *
  * Desc: Geometry shader. Generates 3-space sprites from    *
  *       point lists. Animation support, optional billboard *
@@ -13,8 +13,6 @@ cbuffer CB_PROJ {
 	matrix camera;
 	matrix projection;
 	float  totalSecs;
-//	uint   totalTics[2];
-//	float  elapsedSecs;
 };
 
 struct OBJECT_IMM {	// 4 bytes
@@ -25,8 +23,8 @@ struct PART_IMM {	// 68 bytes
 	float3	pos;		// Position (relative to origin)
 	float3	rot;		// Rotation	(relative to origin)
 	float2	size;		//	Relative to parent
-	float3	t_pos;	// Slide & rotation vectors (maximum transformation)
-	float3	t_rot;	// Slide & rotation vectors (maximum transformation)
+	float3	t_pos;	// Slide vector (maximum transformation)
+	float3	t_rot;	// Rotation vector (maximum transformation)
 	uint		bits;		// 0==Shape (quad/tri), 1==Billboard
 	uint		tc[2];	// tex[0] == Diffuse map | tex[2].x == Paint map    | tex[3].x == Highlight map
 };							// tex[1] == Normal map  | tex[2].y == Emission map | tex[3].y == Occlusion map
@@ -50,9 +48,7 @@ struct GOut {	// 13 scalars
 	float3 position : POSITION;
 	float2 tex : TEXCOORD;
 	uint   i : BLENDINDICES0;		// Sprite index
-	uint   rotX : BLENDINCICES1;	// sin & cos of X rotation
-	uint   rotY : BLENDINCICES2;	// sin & cos of Y rotation
-	uint   rotZ : BLENDINCICES3;	// sin & cos of Z rotation
+	uint3  rot : BLENDINCICES1;	// sin & cos of XYZ rotations
 };
 
 inline float2 RotateVector(float2 v, float2 dir) { return float2(dot(v, float2(dir.x, -dir.y)), dot(v, dir.yx)); }
@@ -60,8 +56,8 @@ inline float2 RotateVector(float2 v, float2 dir) { return float2(dot(v, float2(d
 // index[0]: 0-11==Object index (~4K unique), 12-31==Parent bone index (~1,024K unique)
 [instance(32)] [maxvertexcount(4)]
 void main(point uint index[1] : BLENDINDICES, uint pID : SV_PrimitiveID, uint iID : SV_GSInstanceID, inout TriangleStream<GOut> triStream) {
-	GOut   output;
-	float2 fRot;
+	GOut     output;
+	float2x3 fRot;
 	// Abandon quad if infinitely small
 	if(bone[index[0] >> 12].size.x == 0.0f) return;
 	// Unpack object array index from input data
@@ -89,16 +85,11 @@ void main(point uint index[1] : BLENDINDICES, uint pID : SV_PrimitiveID, uint iI
 	// Transrotate if child
 	if(uiQuadC - iID) {
 		fPosition *= float3(part[uiPPI].size, 1.0f) * bone[uiBPI].size * 0.25f;
-		sincos(fRotation.z * 0.5f, fRot.y, fRot.x);
-		fPosition.xy = RotateVector(fPosition.xy, fRot);
-		fPosition.xy = RotateVector(fPosition.xy, fRot);
-		sincos(fRotation.y * 0.5f, fRot.y, fRot.x);
-		fPosition.xz = RotateVector(fPosition.xz, fRot);
-		fPosition.xz = RotateVector(fPosition.xz, fRot);
-		sincos(fRotation.x * 0.5f, fRot.y, fRot.x);
-		fPosition.yz = RotateVector(fPosition.yz, fRot);
-		fPosition.yz = RotateVector(fPosition.yz, fRot);
-
+		sincos(fRotation, fRot[0], fRot[1]);
+		fPosition.xy = RotateVector(fPosition.xy, fRot._23_13.xy);
+		fPosition.xz = RotateVector(fPosition.xz, fRot._22_12.xy);
+		fPosition.yz = RotateVector(fPosition.yz, fRot._21_11.xy);
+		// Adjust rotation offset
 		fRotation += lerp(part[uiPAI].rot + bone[uiBAI].rot, part[uiPAI].t_rot, bone[uiBAI].lerp);
 	}
 	fPosition += lerp(part[uiPPI].pos + bone[uiBPI].pos, part[uiPPI].t_pos + bone[uiBPI].pos, bone[uiBPI].lerp);
@@ -107,59 +98,51 @@ void main(point uint index[1] : BLENDINDICES, uint pID : SV_PrimitiveID, uint iI
 	float3 fVert2 = float3(-fVert1.x, fVert1.yz);
 	// Unpack texture coordinates
 	const float4 fTC = float4((bone[uiBAI].tc[0] >> uint2(0, 16)) & 0x0FFFF, (bone[uiPAI].tc[1] >> uint2(0, 16)) & 0x0FFFF) * 0.000030517578125f;
-
 	// Rotate
-	sincos(fRotation.z, fRot.y, fRot.x);
-	fVert1.xy = RotateVector(fVert1.xy, fRot);
-	fVert2.xy = RotateVector(fVert2.xy, fRot);
+	sincos(fRotation, fRot[0], fRot[1]);
+	fVert1.xy = RotateVector(fVert1.xy, fRot._23_13.xy);
+	fVert2.xy = RotateVector(fVert2.xy, fRot._23_13.xy);
 	// Rotate around X and Y if not a billboard
 	if(!bBillboard) {
-		sincos(fRotation.y, fRot.y, fRot.x);
-		fVert1.xz = RotateVector(fVert1.xz, fRot);
-		fVert2.xz = RotateVector(fVert2.xz, fRot);
-		sincos(fRotation.x, fRot.y, fRot.x);
-		fVert1.yz = RotateVector(fVert1.yz, fRot);
-		fVert2.yz = RotateVector(fVert2.yz, fRot);
+		fVert1.xz = RotateVector(fVert1.xz, fRot._22_12.xy);
+		fVert2.xz = RotateVector(fVert2.xz, fRot._22_12.xy);
+		fVert1.yz = RotateVector(fVert1.yz, fRot._21_11.xy);
+		fVert2.yz = RotateVector(fVert2.yz, fRot._21_11.xy);
 	}
-	
-	output.i = uiSAI;
-	sincos(fRotation.x + 1.5f, fRot.y, fRot.x);
-	output.rotX = f32tof16(fRot.y) | (f32tof16(-fRot.x) << 16);
-	sincos(fRotation.y + 1.5f, fRot.y, fRot.x);
-	output.rotY = f32tof16(fRot.y) | (f32tof16(-fRot.x) << 16);
-	sincos(fRotation.z + 1.5f, fRot.y, fRot.x);
-	output.rotZ = f32tof16(fRot.y) | (f32tof16(-fRot.x) << 16);
-
 	// Calculate animation frame offset
 	const float fFrameOS = (fTC.z - fTC.x) * trunc(((totalSecs / fFT) + fAFO) % fAFC);
-
+	
+	sincos(fRotation + 1.5f, fRot[0], fRot[1]);
+	output.rot = f32tof16(fRot[0]) | (f32tof16(-fRot[1]) << 16);
+	output.i = uiSAI;
 	// Bottom-left vertex
-	output.position = fPosition; if(!bBillboard) output.position -= fVert1;
+	output.position = fPosition;
+	if(!bBillboard) output.position -= fVert1;
 	float4 prePos = mul(float4(output.position, 1.0f), camera);
 	if(bBillboard) prePos -= float4(fVert1, 0.0f);
 	output.pos = mul(prePos, projection);
 	output.tex = float2(fTC.x + fFrameOS, fTC.w);
 	triStream.Append(output);
-
 	// Top(-left) vertex
-	output.position = fPosition; if(!bBillboard && !bShape) output.position += fVert2;	// Shift to top-left if quadrilateral
+	output.position = fPosition;
+	if(!bBillboard && !bShape) output.position += fVert2;	// Shift to top-left if quadrilateral
 	prePos = mul(float4(output.position, 1.0f), camera);
 	if(bBillboard && !bShape) prePos += float4(fVert2, 0.0f);
 	output.pos = mul(prePos, projection);
 	output.tex = float2(fTC.x + fFrameOS, fTC.y);
 	triStream.Append(output);
-
 	// Bottom-right vertex
-	output.position = fPosition; if(!bBillboard) output.position -= fVert2;
+	output.position = fPosition;
+	if(!bBillboard) output.position -= fVert2;
 	prePos = mul(float4(output.position, 1.0f), camera);
 	if(bBillboard) prePos -= float4(fVert2, 0.0f);
 	output.pos = mul(prePos, projection);
 	output.tex = float2(fTC.z + fFrameOS, fTC.w);
 	triStream.Append(output);
-
 	// Top-right vertex
 	if(bShape) return;	// Exit if triangle
-	output.position = fPosition; if(!bBillboard) output.position += fVert1;
+	output.position = fPosition;
+	if(!bBillboard) output.position += fVert1;
 	prePos = mul(float4(output.position, 1.0f), camera);
 	if(bBillboard) prePos += float4(fVert1, 0.0f);
 	output.pos = mul(prePos, projection);
