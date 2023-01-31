@@ -1,14 +1,3 @@
-/************************************************************
- * File: gs.instanced.sprites.hlsl      Created: 2022/11/21 *
- *                                    Last mod.: 2022/12/07 *
- *                                                          *
- * Desc: Geometry shader. Generates 3-space sprites from    *
- *       point lists. Animation support, optional billboard *
- *       orienting, and choice between tri and quad.        *
- *                                                          *
- *  Copyright (c) David William Bull. All rights reserved.  *
- ************************************************************/
-
 cbuffer CB_PROJ {
 	matrix camera;
 	matrix projection;
