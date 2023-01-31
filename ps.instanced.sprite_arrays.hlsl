@@ -1,13 +1,3 @@
-/************************************************************
- * File: ps.16lights.hlsl               Created: 2022/11/21 *
- *                                Last modified: 2022/12/07 *
- *                                                          *
- * Desc: Pixel shader. Co-shader for instanced sprite       *
- *       arrays.                                            *
- *                                                          *
- *  Copyright (c) David William Bull. All rights reserved.  *
- ************************************************************/
-
 struct LIGHT {
 	float3 lightPos;
 	float  lightRange;
