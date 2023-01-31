@@ -1,13 +1,3 @@
-/************************************************************
- * File: gs.instanced.sprites.hlsl      Created: 2022/10/28 *
- *                                    Last mod.: 2022/10/31 *
- *                                                          *
- * Desc: Geometry shader. Generates billboarded sprites     *
- *       from point lists.                                  *
- *                                                          *
- *  Copyright (c) David William Bull. All rights reserved.  *
- ************************************************************/
-
 cbuffer CB_PROJ {
 	matrix camera;
 };
