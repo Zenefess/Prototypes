@@ -1,12 +1,3 @@
-/************************************************************
- * File: vs.instanced.squads.hlsl       Created: 2020/10/27 *
- *                                Last modified: 2020/10/31 *
- *                                                          *
- * Desc:                                                    *
- *                                                          *
- *  Copyright (c) David William Bull. All rights reserved.  *
- ************************************************************/
-
 struct IOut {
 	float3	trans : POSITION;
 	float3	r_s : NORMAL;
